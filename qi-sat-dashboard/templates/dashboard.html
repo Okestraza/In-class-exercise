@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QI Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 40px;
+        }
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 16px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        h2 {
+            color: #333;
+            font-size: 18px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover {
+            background-color: #fafafa;
+        }
+        .rating-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            text-align: center;
+            min-width: 30px;
+        }
+        .rating-1 {
+            background-color: #ffcccc;
+            color: #cc0000;
+        }
+        .rating-2 {
+            background-color: #ffddaa;
+            color: #cc6600;
+        }
+        .rating-3 {
+            background-color: #ffffcc;
+            color: #ccaa00;
+        }
+        .rating-4 {
+            background-color: #ccffcc;
+            color: #00cc00;
+        }
+        .rating-5 {
+            background-color: #aaddff;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QI Dashboard - Courtesy Ratings Over Time</h1>
+
+        {% if dates %}
+            <div class="chart-wrapper">
+                <canvas id="ratingChart"></canvas>
+            </div>
+
+            <script>
+                const ctx = document.getElementById('ratingChart').getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ dates | tojson }},
+                        datasets: [
+                            {
+                                label: 'Nurse Courtesy (Avg)',
+                                data: {{ nurse_averages | tojson }},
+                                borderColor: '#0066cc',
+                                backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 5,
+                                pointBackgroundColor: '#0066cc',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                            },
+                            {
+                                label: 'Physician Courtesy (Avg)',
+                                data: {{ physician_averages | tojson }},
+                                borderColor: '#cc0000',
+                                backgroundColor: 'rgba(204, 0, 0, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 5,
+                                pointBackgroundColor: '#cc0000',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 14,
+                                    },
+                                    padding: 15,
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                min: 0,
+                                max: 5,
+                                ticks: {
+                                    stepSize: 1,
+                                }
+                            }
+                        }
+                    }
+                });
+            </script>
+        {% endif %}
+
+        {% if all_submissions %}
+            <h2>All Submissions</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Nurse Courtesy</th>
+                        <th>Physician Courtesy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in all_submissions %}
+                        <tr>
+                            <td>{{ submission.date }}</td>
+                            <td>
+                                <span class="rating-badge rating-{{ submission.nurse_rating }}">
+                                    {{ submission.nurse_rating }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="rating-badge rating-{{ submission.physician_rating }}">
+                                    {{ submission.physician_rating }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">
+                No data yet. <a href="/rate">Submit a rating</a> to get started.
+            </div>
+        {% endif %}
+
+        <div class="footer">
+            <a href="/rate">Submit a Rating</a>
+            <a href="/dashboard">Refresh Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
